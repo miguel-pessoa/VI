@@ -4,7 +4,6 @@ var radarCountries = [];
 var countries = [];
 var selectedCountries = [];
 function init() {
-
   d3.csv("../data/final/happy.csv").then(
       data => {
         loadCountries(data);
@@ -12,43 +11,33 @@ function init() {
         createScatterPlot(countries);
       }
   )
+  loadRadars(false)
+}
 
+function loadRadars(update) {
   d3.csv("../data/final/2020_report.csv").then(
       data => {
         loadRadar(data, 2020);
         //selectContinents();
-        createRadarChart(radarCountries);
+        createRadarChart(radarCountries, update);
       }
   )
-
-
-
-
-
-  //d3.json("../data/data.json")
-    //.then((data) => {
-      //dataSet = data;
-      //createBarChart(data, false);
-      //createScatterPlot(data, false);
-      //createLineChart(data, false);
-    //})
-    //.catch((error) => {
-    //  console.log(error);
-    //});
 }
 
-
 function loadRadar(data, year) {
+  radarCountries = [];
   data.forEach(row => {
-
-    radarCountries.push({
-      "GDP per capita": row['gdp_per_capita']- 0 ,
-      "Social support": row['social_support']- 0 ,
-      "Health": row['health']- 0 ,
-      "Freedom": row['freedom']- 0 ,
-      "Generosity": row['generosity']- 0 ,
-      "Government trust": row['government_trust']- 0 ,
-    })
+    if(selectedCountries.filter(country => country.country == row.country).length != 0) {
+      radarCountries.push({
+        "Year": year,
+        "GDP per capita": row['gdp_per_capita']- 0,
+        "Social support": row['social_support']- 0,
+        "Health": row['health']- 0,
+        "Freedom": row['freedom']- 0,
+        "Generosity": row['generosity']- 0,
+        "Government trust": row['government_trust']- 0,
+      })
+    }
   });
   console.log(radarCountries)
 }
@@ -79,9 +68,9 @@ function loadCountries(data, update) {
 
 function checkCountry(country) {
   var countryObj = countries.filter(a => a.country == country)[0];
-
   selectedCountries.indexOf(countryObj) == -1? selectedCountries.push(countryObj) : selectedCountries = selectedCountries.filter(a => a != countryObj);
   dataChangeHappy(selectedCountries);
+  loadRadars(true);
 }
 
 function createBarChart(data, update) {
@@ -184,14 +173,17 @@ function createRadarChart(data, update) {
 
   let features = ["GDP per capita", "Social support", "Health", "Freedom", "Generosity", "Government trust"];
 
-  let svg = d3.select("#radarChart").append("svg")
-      .attr("width", width)
-      .attr("height", height);
+  if (!update) {
+    d3.select("div#radarChart").append("svg").attr("width", width)
+        .attr("height", height);
+  }
+
+  let svg = d3.select("#radarChart").select("svg");
 
   let radialScale = d3.scaleLinear()
-      .domain([0,2])
+      .domain([0,1.75])
       .range([0,175]);
-  let ticks = [0.4,0.8,1.2,1.6,2];
+  let ticks = [0.3,0.6,0.9,1.2,1.5];
 
   ticks.forEach(t =>
       svg.append("circle")
@@ -218,8 +210,8 @@ function createRadarChart(data, update) {
   for (var i = 0; i < features.length; i++) {
     let ft_name = features[i];
     let angle = (Math.PI / 2) + (2 * Math.PI * i / features.length);
-    let line_coordinate = angleToCoordinate(angle, 2);
-    let label_coordinate = angleToCoordinate(angle, 2.2);
+    let line_coordinate = angleToCoordinate(angle, 1.5);
+    let label_coordinate = angleToCoordinate(angle, 1.8);
 
     //draw axis line
     svg.append("line")
