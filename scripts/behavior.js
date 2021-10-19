@@ -1,17 +1,29 @@
 var dataSet;
+
+var radarCountries = [];
 var countries = [];
 var selectedCountries = [];
 function init() {
-
 
   d3.csv("../data/final/happy.csv").then(
       data => {
         loadCountries(data);
         //selectContinents();
-        createRealBarChart(selectedCountries);
-
+        createScatterPlot(countries);
       }
   )
+
+  d3.csv("../data/final/2020_report.csv").then(
+      data => {
+        loadRadar(data, 2020);
+        //selectContinents();
+        createRadarChart(radarCountries);
+      }
+  )
+
+
+
+
 
   //d3.json("../data/data.json")
     //.then((data) => {
@@ -23,6 +35,22 @@ function init() {
     //.catch((error) => {
     //  console.log(error);
     //});
+}
+
+
+function loadRadar(data, year) {
+  data.forEach(row => {
+
+    radarCountries.push({
+      "GDP per capita": row['gdp_per_capita']- 0 ,
+      "Social support": row['social_support']- 0 ,
+      "Health": row['health']- 0 ,
+      "Freedom": row['freedom']- 0 ,
+      "Generosity": row['generosity']- 0 ,
+      "Government trust": row['government_trust']- 0 ,
+    })
+  });
+  console.log(radarCountries)
 }
 
 function loadCountries(data, update) {
@@ -46,7 +74,7 @@ function loadCountries(data, update) {
         labels.append("span")
         .attr("class", "filterText")
         .attr("for", function(d) { return d; })
-        .text(function(d) { return d.country; })
+        .text(function(d) { return d.country; });
 }
 
 function checkCountry(country) {
@@ -56,70 +84,6 @@ function checkCountry(country) {
   dataChangeHappy(selectedCountries);
 }
 
-function createRealBarChart(data, update) {
-  width = 450;
-  height = 400;
-  margin = { top: 20, right: 20, bottom: 20, left: 40 };
-
-
-  var svg;
-  if (!update) {
-    svg = d3.select("#barChart")
-      .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .append("g")
-      .attr("transform",
-          "translate(" + margin.left + "," + margin.top + ")");
-  } else {
-     svg = d3
-        .select("div#barChart")
-        .select("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform",
-             "translate(" + margin.left + "," + margin.top + ")");;
-  }
-
-    // Add X axis
-    var x = d3.scaleLinear()
-        .domain([0, 10])
-        .range([ 0, width]);
-    svg.append("g")
-        .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x))
-        .selectAll("text")
-        .attr("transform", "translate(-10,0)rotate(-45)")
-        .style("text-anchor", "end");
-
-    // Y axis
-    var y = d3.scaleBand()
-        .range([ 0, height ])
-        .domain(data.map(function(d) { return d.country; }))
-        .padding(0.5);
-    svg.append("g")
-        .call(d3.axisLeft(y))
-
-    svg.selectAll("rect").exit().remove();
-    //Bars
-  console.log(data);
-    var bars = svg.selectAll("rect")
-        .data(data)
-    bars.enter().append("rect")
-        .attr("x", x(0) )
-        .attr("y", function(d) { return y(d.country); })
-        .attr("width", function(d) { return x(d.happiness_score_2020); })
-        .attr("height", y.bandwidth() )
-        .attr("fill", "steelblue")
-        .on("mouseover", handleMouseOver)
-        .on("mouseleave", handleMouseLeave)
-        .on("click", handleClick)
-        .transition()
-        .duration(1000)
-        .style("opacity", "100%");
-    bars.exit().transition().duration(2000).remove();
-}
 function createBarChart(data, update) {
   width = 250;
   height = 300;
@@ -209,34 +173,116 @@ function createBarChart(data, update) {
     svg.append("g").attr("class", "xAxis");
     svg.append("g").attr("class", "yAxis");
   }
-
   d3.select("g.xAxis").call(xAxis);
   d3.select("g.yAxis").call(yAxis);
 }
 
-function createScatterPlot(data, update) {
-  width = 250;
+function createRadarChart(data, update) {
+  width = 600;
+  height = 400;
+  margin = { top: 40, right: 20, bottom: 40, left: 40 };
 
-  height = 300;
+  let features = ["GDP per capita", "Social support", "Health", "Freedom", "Generosity", "Government trust"];
 
-  margin = { top: 20, right: 20, bottom: 20, left: 40 };
+  let svg = d3.select("#radarChart").append("svg")
+      .attr("width", width)
+      .attr("height", height);
 
-  data = data.filter(function (d) {
-    if (d.budget > 0) {
-      return d;
+  let radialScale = d3.scaleLinear()
+      .domain([0,2])
+      .range([0,175]);
+  let ticks = [0.4,0.8,1.2,1.6,2];
+
+  ticks.forEach(t =>
+      svg.append("circle")
+          .attr("cx", width /2)
+          .attr("cy", height /2)
+          .attr("fill", "none")
+          .attr("stroke", "gray")
+          .attr("r", radialScale(t))
+  );
+
+  ticks.forEach(t =>
+      svg.append("text")
+          .attr("x", width /2 + 5)
+          .attr("y", height/2 - radialScale(t) - 2)
+          .text(t.toString())
+  );
+
+  function angleToCoordinate(angle, value){
+    let x = Math.cos(angle) * radialScale(value);
+    let y = Math.sin(angle) * radialScale(value);
+    return {"x": width/2 + x, "y": height /2 - y};
+  }
+
+  for (var i = 0; i < features.length; i++) {
+    let ft_name = features[i];
+    let angle = (Math.PI / 2) + (2 * Math.PI * i / features.length);
+    let line_coordinate = angleToCoordinate(angle, 2);
+    let label_coordinate = angleToCoordinate(angle, 2.2);
+
+    //draw axis line
+    svg.append("line")
+        .attr("x1", width /2)
+        .attr("y1", height /2)
+        .attr("x2", line_coordinate.x)
+        .attr("y2", line_coordinate.y)
+        .attr("stroke","#aaa");
+
+    //draw axis label
+    svg.append("text")
+        .attr("x", label_coordinate.x)
+        .attr("y", label_coordinate.y)
+        .text(ft_name);
+  }
+
+  let line = d3.line()
+      .x(d => d.x)
+      .y(d => d.y);
+  let colors = ["steelblue", "blue", "yellow"];
+
+  function getPathCoordinates(data_point){
+    let coordinates = [];
+    for (var i = 0; i < features.length; i++){
+      let ft_name = features[i];
+      let angle = (Math.PI / 2) + (2 * Math.PI * i / features.length);
+      coordinates.push(angleToCoordinate(angle, data_point[ft_name]));
     }
-  });
+    return coordinates;
+  }
 
-  x = d3
-    .scaleLinear()
-    .domain([-10, d3.max(data, (d) => d.budget)])
-    .nice()
-    .range([margin.left, width - margin.right]);
+  for (var i = 0; i < data.length; i ++){
+    let d = data[i];
+    let color = colors[i];
+    let coordinates = getPathCoordinates(d);
 
-  y = d3
+    //draw the path element
+    svg.append("path")
+        .datum(coordinates)
+        .attr("d",line)
+        .attr("stroke-width", 3)
+        .attr("stroke", color)
+        .attr("fill", color)
+        .attr("stroke-opacity", 1)
+        .attr("opacity", 0.5);
+  }
+}
+
+
+function createScatterPlot(data, update) {
+  width = 500;
+  height = 400;
+  margin = { top: 20, right: 20, bottom: 40, left: 40 };
+
+
+  var x = d3.scaleLinear()
+      .domain([0, d3.max(data, (d) => d.happiness_score_2020) * 1.2])
+      .range([margin.left, width - margin.right]);
+
+  var y = d3
     .scaleLinear()
-    .domain([5, 10])
-    .range([height - margin.bottom, margin.top]);
+    .domain([20, 0])
+    .range([margin.top, height - margin.bottom]);
 
   xAxis = (g) =>
     g
@@ -244,16 +290,22 @@ function createScatterPlot(data, update) {
       .call(
         d3
           .axisBottom(x)
-          .tickFormat((x) => x / 1000000)
-          .ticks(5)
+          .tickFormat((x) => x )
+          .ticks(10)
       )
-      .call((g) => g.select(".domain").remove());
+      .call((g) => g.select(".domain").remove())
+      .append('text')
+      .attr('class', 'axis-label')
+      .attr('x', width / 2)
+      .attr('y', 100)
+      .text("X");
 
   yAxis = (g) =>
     g
       .attr("transform", `translate(${margin.left},0)`)
       .call(d3.axisLeft(y))
       .call((g) => g.select(".domain").remove());
+
 
   grid = (g) =>
     g
@@ -296,20 +348,34 @@ function createScatterPlot(data, update) {
     .attr("width", width)
     .attr("height", height);
 
+  svg.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 0)
+      .attr("x", 0 - (height / 2))
+      .attr("dy", "1em")
+      .style("text-anchor", "middle")
+      .text("Alcohol consumption per capita");
+
+  svg.append("text")
+      .attr("transform", "translate(" + (width / 2) + " ," + (height -5 ) + ")")
+      .style("text-anchor", "middle")
+      .text("Happiness Score");
+
   svg
     .select("g.circles")
     .selectAll("circle")
     .data(data, function (d) {
-      return d.oscar_year;
+      return d;
     })
     .join(
       (enter) => {
         return enter
           .append("circle")
-          .attr("cx", (d) => x(d.budget))
-          .attr("cy", (d) => y(d.rating))
-          .attr("r", calculateRadius)
-          .style("fill", "steelblue")
+          .attr("class", (d) => d.country.split(' ')[0])
+          .attr("cx", (d) => x(d.happiness_score_2020))
+          .attr("cy", (d) => y(d.alcohol))
+          .attr("r", (d) => calculateSize(d))
+          .style("fill", (d) => calculateFill(d))
           .on("mouseover", handleMouseOver)
           .on("mouseleave", handleMouseLeave)
           .on("click", handleClick)
@@ -321,13 +387,20 @@ function createScatterPlot(data, update) {
         update
           .transition()
           .duration(1000)
-          .attr("cx", (d) => x(d.budget))
-          .attr("cy", (d) => y(d.rating))
-          .attr("r", calculateRadius)
-          .style("fill", "steelblue");
+          .attr("cx", (d) => x(d.happiness_score_2020))
+          .attr("cy", (d) => {
+            var temp = y(d.alcohol);
+            console.log(temp);
+            return temp;
+          })
+          .attr("r", (d) => calculateSize(d))
+          .style("fill", (d) => calculateFill(d));
       },
       (exit) => {
-        exit.remove();
+        exit.transition()
+          .duration(1000)
+          .style("opacity", "0%");
+          exit.remove();
       }
     );
 
@@ -459,8 +532,8 @@ function createLineChart(data, update) {
 // New Code
 
 function dataChangeHappy(data) {
-        createRealBarChart(data, true);
-        //createScatterPlot(newData, true);
+        //createRealBarChart(data, true);
+        createScatterPlot(countries, true);
         //createLineChart(newData, true);
 }
 
@@ -525,7 +598,9 @@ function handleMouseOver(event, d) {
         return b;
       }
     })
-    .style("fill", "blue");
+      .style("fill", "#5e99c5")
+      .append("title")
+      .text(function(d) { return d.country; });
 
   lineChart
     .selectAll("circle")
@@ -534,7 +609,7 @@ function handleMouseOver(event, d) {
         return b;
       }
     })
-    .style("fill", "blue");
+    .style("fill", "#5e99c5");
 }
 
 function handleMouseLeave(event, d) {
@@ -545,8 +620,8 @@ function handleMouseLeave(event, d) {
 
   d3.select("div#scatterPlot")
     .select("svg")
-    .selectAll("circle")
-    .style("fill", "steelblue");
+    .selectAll("circle." + d.country.split(' ')[0])
+    .style("fill", calculateFill(d));
 
   d3.select("div#lineChart")
     .select("svg")
@@ -555,22 +630,21 @@ function handleMouseLeave(event, d) {
 }
 
 function handleClick(event, d) {
-  window.alert(d.country);
+  //window.alert(d.country);
+  checkCountry(d.country);
+}
+
+function calculateSize(dataItem) {
+  var size = "6";
+  if(selectedCountries.indexOf(dataItem) != -1)
+    size = "15";
+  return size;
 }
 
 function calculateFill(dataItem, i) {
-  var scale = d3
-    .scaleLinear()
-    .domain([1, d3.max(dataSet, (d) => d.budget)])
-    .range([0, 1]);
-  return d3.interpolateBlues(scale(dataItem.budget));
-  // return "steelblue";
+  var color = "#aaa";
+  if(selectedCountries.indexOf(dataItem) != -1)
+    color = "steelblue";
+  return color;
 }
 
-function calculateRadius(dataItem, i) {
-  var scale = d3
-    .scaleLinear()
-    .domain([d3.min(dataSet, (d) => d.year), d3.max(dataSet, (d) => d.year)])
-    .range([0, 10]);
-  return scale(dataItem.year);
-}
