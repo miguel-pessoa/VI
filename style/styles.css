@@ -41,7 +41,7 @@ html, body, .main-row{
 }
 
 #countriesChecks {
-  height: calc(80% - 30px);
+  height: calc(60% - 30px);
   max-height: 700px;
   overflow: auto;
 }

@@ -39,7 +39,6 @@ function loadRadar(data, year) {
       })
     }
   });
-  console.log(radarCountries)
 }
 
 function loadCountries(data, update) {
@@ -55,10 +54,10 @@ function loadCountries(data, update) {
 
         labels.append("input")
         .attr("type", "checkbox")
-        .attr("id",  function(d) { return d.country; })
+        .attr("id",  function(d) { return "input" + d.country.replaceAll(" ", ""); })
         .attr("name", "checkbox")
         .attr("value", function(d) { return d.checked; })
-        .on("change", function(d) {checkCountry(d.srcElement.id)});
+        .on("change", function(d) {checkCountry(d.srcElement.id.replace("input", ""), false)});
 
         labels.append("span")
         .attr("class", "filterText")
@@ -66,9 +65,17 @@ function loadCountries(data, update) {
         .text(function(d) { return d.country; });
 }
 
-function checkCountry(country) {
+function checkCountry(country, graph) {
   var countryObj = countries.filter(a => a.country == country)[0];
-  selectedCountries.indexOf(countryObj) == -1? selectedCountries.push(countryObj) : selectedCountries = selectedCountries.filter(a => a != countryObj);
+  if(selectedCountries.indexOf(countryObj) == -1) {
+    selectedCountries.push(countryObj);
+  } else {
+    selectedCountries = selectedCountries.filter(a => a != countryObj);
+  }
+  if(graph){
+    var id = "input" + country.replaceAll(" ", "");
+    document.getElementById(id).checked = !document.getElementById(id).checked;
+  }
   dataChangeHappy(selectedCountries);
   loadRadars(true);
 }
@@ -243,6 +250,9 @@ function createRadarChart(data, update) {
     return coordinates;
   }
 
+  svg.selectAll("path").attr("opacity", "0%")
+
+
   for (var i = 0; i < data.length; i ++){
     let d = data[i];
     let color = colors[i];
@@ -382,7 +392,6 @@ function createScatterPlot(data, update) {
           .attr("cx", (d) => x(d.happiness_score_2020))
           .attr("cy", (d) => {
             var temp = y(d.alcohol);
-            console.log(temp);
             return temp;
           })
           .attr("r", (d) => calculateSize(d))
@@ -497,7 +506,7 @@ function createLineChart(data, update) {
           .attr("r", 3)
           .style("fill", "steelblue")
           .text(function (d) {
-            return d.title;
+            return d.title ;
           })
           .on("mouseover", handleMouseOver)
           .on("mouseleave", handleMouseLeave)
@@ -592,7 +601,7 @@ function handleMouseOver(event, d) {
     })
       .style("fill", "#5e99c5")
       .append("title")
-      .text(function(d) { return d.country; });
+      .text(function(d) { return d.country + "\n Alcohol Consumption: " + d.alcohol + "\n Happiness score: " + d.happiness_score_2020.substring(0,4)});
 
   lineChart
     .selectAll("circle")
@@ -623,7 +632,7 @@ function handleMouseLeave(event, d) {
 
 function handleClick(event, d) {
   //window.alert(d.country);
-  checkCountry(d.country);
+  checkCountry(d.country, true);
 }
 
 function calculateSize(dataItem) {
