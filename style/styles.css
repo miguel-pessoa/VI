@@ -73,3 +73,43 @@ html, body, .main-row{
 ::-webkit-scrollbar-thumb:hover {
   background: #ddd;
 }
+
+
+input[type="checkbox"]:checked::before {
+  background-color: red;
+  color: red;
+}
+
+::selection {
+  background: transparent;
+}
+
+
+.checkbox {
+  width: 15px;
+  height: 15px;
+  display: inline-block;
+  background-color: white;
+  border: 1px solid gray;
+  border-radius: 2px;
+}
+
+.checkbox.red{
+  background-color: red;
+}
+
+.checkbox.blue{
+  background-color: blue;
+}
+
+.checkbox.yellow{
+  background-color: yellow;
+}
+
+.checkbox.green{
+  background-color: green;
+}
+
+.checkbox.gray{
+  background-color: gray;
+}
