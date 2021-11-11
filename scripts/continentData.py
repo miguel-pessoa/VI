@@ -1,8 +1,7 @@
 import pandas as pd
 
 # Read data
-happy_df = pd.read_csv('data/final/happy.csv', delimiter=',')
-gov_df = pd.read_csv('data/final/gov.csv', delimiter=',')
+happy_df = pd.read_csv('data/final/happy_gov.csv', delimiter=',')
 
 # # Drop columns
 # gdp_df.drop('Info', axis=1, inplace=True)
@@ -28,12 +27,13 @@ gov_df = pd.read_csv('data/final/gov.csv', delimiter=',')
 
 # # Drop years
 # gdp_df = gdp_df[['Country', 'sum']]
-print(gov_df.head())
-print(happy_df.head())
-# Join
-out_df = happy_df.merge(gov_df, left_on='country', right_on='country')
-# out_df = out_df[['Country','sum','iso_3166-2']]
+continents = happy_df.groupby(by = ["continent"], as_index = False).mean()
+continents = continents.rename(columns={"continent": "country"})
+continents = continents.drop('id', 1)
+print(continents.head())
+
+happy_df = happy_df.append(continents)
 
 
-out_df.to_csv('data/test.csv', index=False, header=True)
+happy_df.to_csv('data/final/happy_gov_continent.csv', index=False, header=True)
 
