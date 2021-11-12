@@ -6,15 +6,16 @@ var selectedCountries = [];
 let colors = ["blue", "yellow", "red", "green", "gray"];
 
 function init() {
+  console.log("I'm here")
   d3.csv("../data/final/happy_gov.csv").then(
       data => {
         loadCountries(data);
         //selectContinents();
         createScatterPlot(countries);
-        createBoxPlot(data, false);
+        // createBoxPlot(data, false);
       }
   )
-  
+  loadLine(false)
   loadRadars(false)
 }
 
@@ -26,6 +27,14 @@ function loadRadars(update) {
         createRadarChart(radarCountries, update);
       }
   )
+}
+
+function loadLine(update) {
+  d3.csv("../data/final/lineData.csv").then(
+    data => {
+      createLineChart(data, update);
+    }
+)
 }
 
 function loadRadar(data, year) {
@@ -576,4 +585,122 @@ function calculateId(country) {
       .replaceAll(".", "")
       .replaceAll(",","")
       .replaceAll("'","");
+}
+
+function createLineChart(data, update) {
+  margin = { top: 20, right: 20, bottom: 20, left: 40 };
+
+  console.log(data)
+
+  data = data.filter(function (d) {
+    if (d.happy > 0) {
+      return d;
+    }
+  });
+
+
+  line = d3
+    .line()
+    .defined(function (d) {
+      return d.happy > 0;
+    })
+    .x((d) => x(d.year))
+    .y((d) => y(d.happy));
+
+  x = d3
+    .scaleLinear()
+    .domain(d3.extent(data, (d) => d.year))
+    .range([margin.left, width - margin.right]);
+
+  y = d3
+    .scaleLinear()
+    .domain([0, d3.max(data, (d) => d.happy)])
+    .range([height - margin.bottom, margin.top]);
+
+  xAxis = (g) =>
+    g.attr("transform", `translate(0,${height - margin.bottom})`).call(
+      d3
+        .axisBottom(x)
+        .tickFormat((x) => x)
+        .tickSizeOuter(0)
+    );
+
+  yAxis = (g) =>
+    g
+      .attr("transform", `translate(${margin.left},0)`)
+      .call(d3.axisLeft(y).tickFormat((x) => x / 1000000))
+      .call((g) => g.select(".domain").remove());
+
+  if (!update) {
+    d3.select("div#lineChart")
+      .append("svg")
+      .append("g")
+      .attr("class", "line")
+      .append("path");
+  }
+
+  const svg = d3
+    .select("div#lineChart")
+    .select("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+  if (!update) {
+    svg.append("g").attr("class", "lineXAxis");
+    svg.append("g").attr("class", "lineYAxis");
+  }
+
+  svg.select("g.lineXAxis").call(xAxis);
+
+  svg.select("g.lineYAxis").call(yAxis);
+
+  svg
+    .select("path")
+    .datum(data)
+    .attr("fill", "none")
+    .attr("stroke", "steelblue")
+    .attr("stroke-width", 1.5)
+    .attr("stroke-linejoin", "round")
+    .attr("stroke-linecap", "round")
+    .transition()
+    .duration(1000)
+    .attr("d", line);
+
+  svg
+    .select("g.line")
+    .selectAll("circle")
+    .data(data, function (d) {
+      return d.oscar_year;
+    })
+    .join(
+      (enter) => {
+        return enter
+          .append("circle")
+          .attr("cx", (d) => x(d.year))
+          .attr("cy", (d) => y(d.happy))
+          .attr("r", 3)
+          .style("fill", "steelblue")
+          .text(function (d) {
+            return d.title;
+          })
+          .on("mouseover", handleMouseOver)
+          .on("mouseleave", handleMouseLeave)
+          .on("click", handleClick)
+          .transition()
+          .duration(1000)
+          .style("opacity", "100%");
+      },
+      (update) => {
+        update
+          .transition()
+          .duration(1000)
+          .attr("cx", (d) => x(d.year))
+          .attr("cy", (d) => y(d.happy))
+          .attr("r", 3)
+          .style("fill", "steelblue");
+      },
+      (exit) => {
+        exit.remove();
+      }
+    );
 }
